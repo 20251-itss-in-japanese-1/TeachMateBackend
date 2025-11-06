@@ -14,14 +14,17 @@ const userSchema = new Schema({
 	experience: { type: Number },
 	introduction: { type: String },
 	specialties: { type: [String], default: [] },
-	// required by original schemas
+	// role only — no locale field
 	role: { type: String, enum: ['user', 'admin'], default: 'user' },
-	locale: { type: String, enum: ['ja', 'vi'], required: true },
-	lastActiveAt: { type: Date, default: null }
+	lastActiveAt: { type: Date, default: null },
+
+	// new: list of friend user ids
+	friends: [{ type: Schema.Types.ObjectId, ref: 'User' }]
 }, { timestamps: true, versionKey: false });
 
 userSchema.index({ email: 1 }, { unique: true });
 
+// hash password before save if modified
 userSchema.pre('save', async function (next) {
 	if (!this.isModified('password')) return next();
 	try {

@@ -1,9 +1,8 @@
 module.exports = {
-	User: require('./user'),
+	User: require('./User'),
 	Profile: require('./Profile'),
 	AuthProvider: require('./AuthProvider'),
 	FriendRequest: require('./FriendRequest'),
-	Friendship: require('./Friendship'),
 	Group: require('./Group'),
 	GroupMember: require('./GroupMember'),
 	Thread: require('./Thread'),
