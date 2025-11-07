@@ -1,11 +1,11 @@
 const express = require('express');
 const router = express.Router();
 const userController = require('../controller/usercontroller');
-const auth = require('../middleware/auth');
+const auth = require('../middleware/AuthMiddleware')
 
 // View own profile
 // GET /profile
-router.get('/profile', auth, userController.viewProfile);
+router.get('/profile', auth.isUser, userController.viewProfile);
 
 // Edit own profile
 // PUT /profile
