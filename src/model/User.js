@@ -15,6 +15,8 @@ const userSchema = new Schema({
 	role: { type: String, enum: ['user', 'admin'], default: 'user' },
 	lastActiveAt: { type: Date, default: null },
 	friends: [{ type: Schema.Types.ObjectId, ref: 'User' }],
+	incomingFriendRequests: [{ type: Schema.Types.ObjectId, ref: 'User', default: [] }],
+	outgoingFriendRequests: [{ type: Schema.Types.ObjectId, ref: 'User', default: [] }],
 	bio: { type: String, default: '' },
 	languages: [{ type: String }],
 	yearsExperience: { type: Number, default: 0 },
@@ -23,6 +25,7 @@ const userSchema = new Schema({
 	specialties_major: { type: [String], default: [] },
 	specialties_subject: { type: [String], default: [] },
 	specialties_interest: { type: [String], default: [] },
+
 	googleId: { type: String, default: null },
 	facebookId: { type: String, default: null},
 }, { timestamps: true, versionKey: false });
