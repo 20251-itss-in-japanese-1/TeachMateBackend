@@ -1,7 +1,7 @@
 const dotenv = require('dotenv')
 const express = require('express')
 const connectDB = require('./config/db')
-const router = require('./router/router')
+const routes = require('./routes/index')
 const cors = require('cors')
 dotenv.config()
 const app = express()
@@ -10,7 +10,13 @@ app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
 connectDB()
 const port = 3000
-app.use(router)
+app.use(routes)
+app.use((err, req, res, next) => {
+    console.error(`[ERROR] ${req.method} ${req.url}`);
+    console.error(err.stack); // in chi tiết stack trace
+    res.status(500).json({ error: 'Server error', message: err.message });
+});
+
 app.get('/', (req, res) => {
   res.send('Hello World!')
 })

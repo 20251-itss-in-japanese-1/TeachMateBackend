@@ -1,13 +1,9 @@
+
 const express = require('express');
+const authController = require('../controller/auth.controller');
 const router = express.Router();
-const userController = require('../controller/usercontroller');
 
-// POST /auth/register
-router.post('/register', userController.register);
-
-// POST /auth/login
-router.post('/login', userController.login);
-
-// (optional) additional auth endpoints can be added here
+router.post("/register", authController.register);
+router.post("/login", authController.login);
 
 module.exports = router;

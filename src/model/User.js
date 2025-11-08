@@ -7,7 +7,7 @@ const userSchema = new Schema({
 	name: { type: String },
 	email: { type: String, required: true, unique: true, match: /^[^@\s]+@[^@\s]+\.[^@\s]+$/ },
 	password: { type: String, required: true },
-	nationality: { type: String },
+	nationality: { type: String, default: 'Japan' },
 	avatarUrl: { type: String },
 	experience: { type: Number },
 	introduction: { type: String },
