@@ -2,7 +2,7 @@ const User = require('../model/User');
 const {generateToken} = require('../utils/token');
 
 class AuthService {
-    async register(data) {
+    register = async (data) => {
         const { name, email, password } = data;
         if(!name || !email || !password) {
             throw new Error('Name, email, and password are required');
@@ -18,7 +18,7 @@ class AuthService {
             message: 'User registered successfully',
         };
     }
-    async login(data) {
+    login = async (data) => {
         const { email, password } = data;
         if (!email || !password) {
             throw new Error('Email and password are required');
@@ -37,7 +37,6 @@ class AuthService {
             success: true,
             message: 'Login successful',
             data: {
-                user: user,
                 token: token
             }
         };
