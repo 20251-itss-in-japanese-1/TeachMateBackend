@@ -52,6 +52,32 @@ class FriendController {
             });
         }
     }
+    friendSuggestions = async (req, res) => {
+        const userId = req.user.id;
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        try {
+            const result = await friendService.friendSuggestions(userId, page, limit);
+            res.status(200).json(result);
+        } catch (error) {
+            res.status(404).json({
+                message: error.message,
+                success: false
+            });
+        }
+    }
+    getFriendRequests = async (req, res) => {
+        const userId = req.user.id;
+        try {
+            const result = await friendService.getFriendRequests(userId);
+            res.status(200).json(result);
+        } catch (error) {
+            res.status(404).json({
+                message: error.message,
+                success: false
+            });
+        }
+    }
 }
 
 module.exports = new FriendController();

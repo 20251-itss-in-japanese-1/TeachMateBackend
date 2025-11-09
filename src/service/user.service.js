@@ -1,9 +1,7 @@
 const User = require('../model/User');
-const Notification = require('../model/Notification');
-const Socket = require('../socket/socket');
 const FriendRequest = require('../model/FriendRequest');
 class UserService {
-	async getMyProfile(userId) {
+	getMyProfile = async (userId) => {
 		const user = await User.findById(userId).select('-password');
 		if (!user) {
 			throw new Error('User not found');
@@ -14,7 +12,7 @@ class UserService {
 			data: user
 		};
 	}
-	async updateProfile(userId, updateData) {
+	updateProfile = async (userId, updateData) => {
 		if (!userId) {
 			throw new Error('Unauthorized');
 		}

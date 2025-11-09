@@ -5,7 +5,7 @@ const threadSchema = new Schema({
 	type: { type: String, required: true, enum: ['dm', 'group'] },
 	dmUserA: { type: Schema.Types.ObjectId, ref: 'User' },
 	dmUserB: { type: Schema.Types.ObjectId, ref: 'User' },
-	groupId: { type: Schema.Types.ObjectId, ref: 'Group' },
+	groupId: { type: Schema.Types.ObjectId, ref: 'Group', default: null },
 	lastMessageAt: { type: Date },
 	lastMessagePreview: { type: String, maxlength: 200 }
 }, { versionKey: false });

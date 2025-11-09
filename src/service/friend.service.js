@@ -121,6 +121,51 @@ class FriendService {
             }
         }
     }
+    friendSuggestions = async(userId, page=1, limit=10) => {
+        const user = await User.findById(userId);
+        if(!user) {
+            throw new Error('User not found');
+        }
+        const relatedRequests = await FriendRequest.find({
+            $or: [{ fromUserId: userId }, { toUserId: userId }]
+        }).select('fromUserId toUserId');
+        const relatedUserIds = relatedRequests.map(req =>
+            req.fromUserId.toString() === userId.toString()
+            ? req.toUserId
+            : req.fromUserId
+        );
+        const excludeIds = [...user.friends, user._id, ...relatedUserIds];
+        const skip = (page - 1) * limit;
+        const query = {
+            _id: { $nin: excludeIds },
+        };
+        const total = await User.countDocuments(query);
+        const suggestions = await User.find(query)
+            .select('-password')
+            .skip(skip) 
+            .limit(limit);
+        return {
+            success: true,
+            message: 'Teachers fetched successfully',
+            meta: {
+                page: page,
+                limit: limit,
+                total: total,
+            },
+            data: suggestions
+        }
+    }
+    getFriendRequests = async(userId) => {
+        if (!userId) {
+            throw new Error('Unauthorized');
+        }
+        const requests = await FriendRequest.find({toUserId: userId, status: 'pending'}).populate('fromUserId', '-password');
+        return {
+            success: true,
+            message: 'Friend requests fetched successfully',
+            data: requests
+        }
+    }
 }
 
 
