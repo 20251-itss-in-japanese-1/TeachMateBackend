@@ -6,8 +6,8 @@ router.get("/me", authMiddleware.isAuth, userController.getMyProfile);
 router.post("/me/edit", authMiddleware.isAuth, userController.updateProfile); 
 router.get('/teacher/:id', authMiddleware.isAuth, userController.viewTeacherProfile);
 router.get('/search', authMiddleware.isAuth, userController.searchUsers);
-router.post('/friend-request/:id', authMiddleware.isAuth, userController.sendFriendRequest);
-router.delete('/friend-request/:id', authMiddleware.isAuth, userController.cancelFriendRequest);
+
+
 
 // notifications routes
 router.get('/notifications', authMiddleware.isAuth, userController.getNotifications);
