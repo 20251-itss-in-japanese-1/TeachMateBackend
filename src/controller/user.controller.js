@@ -59,20 +59,7 @@ class UserController {
         }
     }
 
-    sendFriendRequest = async (req, res) => {
-        const requesterId = req.user && req.user.id;
-        const targetId = req.params && req.params.id;
-        try {
-            const result = await userService.sendFriendRequest(requesterId, targetId);
-            console.log(result);
-            res.status(200).json(result);
-        } catch (error) {
-            res.status(404).json({
-                message: error.message,
-                success: false
-            });
-        }
-    }
+
 
     // Thêm: hủy (rút) lời mời kết bạn đã gửi
     cancelFriendRequest = async (req, res) => {
