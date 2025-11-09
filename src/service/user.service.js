@@ -1,60 +1,7 @@
 const User = require('../model/User');
 const Notification = require('../model/Notification');
-const mongoose = require('mongoose');
-
-// Thêm: định nghĩa Group model inline (không tạo file mới)
-const { Schema } = mongoose;
-const groupSchema = new Schema({
-	name: { type: String, required: true, maxlength: 50 },
-	owner: { type: Schema.Types.ObjectId, ref: 'User', required: true },
-	members: [{ type: Schema.Types.ObjectId, ref: 'User' }],
-	createdAt: { type: Date, default: Date.now }
-}, { versionKey: false });
-
-let Group;
-try {
-	Group = mongoose.model('Group');
-} catch (e) {
-	Group = mongoose.model('Group', groupSchema);
-}
-
-// Thêm: định nghĩa Report model inline
-let Report;
-try {
-	Report = mongoose.model('Report');
-} catch (e) {
-	const reportSchema = new mongoose.Schema({
-		reporter: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-		targetType: { type: String, enum: ['user','group'], required: true },
-		targetId: { type: mongoose.Schema.Types.ObjectId, required: true },
-		status: { type: String, enum: ['pending','reviewed','dismissed'], default: 'pending' },
-		createdAt: { type: Date, default: Date.now }
-	}, { versionKey: false });
-	Report = mongoose.model('Report', reportSchema);
-}
-
-// Thêm: định nghĩa Event model inline
-let Event;
-try {
-	Event = mongoose.model('Event');
-} catch (e) {
-	const eventSchema = new mongoose.Schema({
-		group: { type: mongoose.Schema.Types.ObjectId, ref: 'Group', required: true },
-		creator: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-		name: { type: String, required: true, maxlength: 200 },
-		description: { type: String, default: '' },
-		startsAt: { type: Date, required: true },
-		endsAt: { type: Date },
-		attendees: [{
-			user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-			status: { type: String, enum: ['yes','no','maybe','pending'], default: 'pending' }
-		}],
-		createdAt: { type: Date, default: Date.now },
-		updatedAt: { type: Date, default: Date.now }
-	}, { versionKey: false });
-	Event = mongoose.model('Event', eventSchema);
-}
-
+const Socket = require('../socket/socket');
+const FriendRequest = require('../model/FriendRequest');
 class UserService {
 	async getMyProfile(userId) {
 		const user = await User.findById(userId).select('-password');
@@ -67,8 +14,6 @@ class UserService {
 			data: user
 		};
 	}
-
-	// Thêm: cập nhật hồ sơ người dùng
 	async updateProfile(userId, updateData) {
 		if (!userId) {
 			throw new Error('Unauthorized');
@@ -78,12 +23,9 @@ class UserService {
 		if (!user) {
 			throw new Error('User not found');
 		}
-
-		// Chỉ cho phép các trường sau
 		const allowed = ['fullName', 'nationality', 'experience', 'bio', 'specialties_major', 'specialties_subject'];
 		for (const key of allowed) {
 			if (updateData[key] !== undefined) {
-				// specialties cần là mảng
 				if (key === 'specialties_major') {
 					let sp = updateData.specialties_major;
 					if (typeof sp === 'string') {
@@ -119,8 +61,6 @@ class UserService {
 			data: safeUser
 		};
 	}
-
-	// Thêm: lấy profile giáo viên để hiển thị (chi tiết chỉ xem)
 	async getTeacherProfile(teacherId, requesterId) {
 		if (!teacherId) {
 			throw new Error('Teacher id is required');
@@ -129,20 +69,16 @@ class UserService {
 		if (!teacher) {
 			throw new Error('Teacher not found');
 		}
-
-		// xác định quan hệ bạn bè nếu model có trường friends (mảng id)
 		let isFriend = false;
 		if (requesterId && Array.isArray(teacher.friends)) {
 			isFriend = teacher.friends.map(String).includes(String(requesterId));
 		}
-
-		// build trả về chỉ những trường cần thiết
 		const profile = {
 			id: teacher._id,
 			avatar: teacher.avatar || null,
 			fullName: teacher.fullName || teacher.name || null,
 			nationality: teacher.nationality || null,
-			experience: teacher.experience || null, // số năm kinh nghiệm
+			experience: teacher.experience || null, 
 			specialties_major: Array.isArray(teacher.specialties_major) ? teacher.specialties_major : (teacher.specialties_major ? [teacher.specialties_major] : []),
 			specialties_subject: Array.isArray(teacher.specialties_subject) ? teacher.specialties_subject : (teacher.specialties_subject ? [teacher.specialties_subject] : []),
 			interests: Array.isArray(teacher.interests) ? teacher.interests : (teacher.interests ? [teacher.interests] : []),
@@ -157,7 +93,6 @@ class UserService {
 		};
 	}
 
-	// Thêm: tìm người dùng theo tên hoặc email (dùng cho chức năng thêm bạn)
 	async searchUsers(requesterId, query) {
 		if (!requesterId) {
 			throw new Error('Unauthorized');
@@ -182,168 +117,34 @@ class UserService {
 		};
 	}
 
-	// Thêm: gửi yêu cầu kết bạn
-	async sendFriendRequest(requesterId, targetId) {
-		if (!requesterId) {
-			throw new Error('Unauthorized');
-		}
-		if (!targetId) {
-			throw new Error('Target user id is required');
-		}
-		if (!mongoose.Types.ObjectId.isValid(targetId)) {
-			throw new Error('Invalid target id');
-		}
-		if (String(requesterId) === String(targetId)) {
-			throw new Error('Cannot send friend request to yourself');
-		}
-
-		const [requester, target] = await Promise.all([
-			User.findById(requesterId),
-			User.findById(targetId)
-		]);
-
-		if (!requester || !target) {
-			throw new Error('User not found');
-		}
-
-		// đã là bạn
-		if (Array.isArray(requester.friends) && requester.friends.map(String).includes(String(targetId))) {
-			throw new Error('Already friends');
-		}
-
-		// đã gửi rồi
-		if (Array.isArray(requester.outgoingFriendRequests) && requester.outgoingFriendRequests.map(String).includes(String(targetId))) {
-			throw new Error('Friend request already sent');
-		}
-		if (Array.isArray(target.incomingFriendRequests) && target.incomingFriendRequests.map(String).includes(String(requesterId))) {
-			throw new Error('Friend request already sent');
-		}
-
-		// add requests
-		requester.outgoingFriendRequests = requester.outgoingFriendRequests || [];
-		target.incomingFriendRequests = target.incomingFriendRequests || [];
-
-		requester.outgoingFriendRequests.push(target._id);
-		target.incomingFriendRequests.push(requester._id);
-
-		// Tạo notification cho target
-		try {
-			await Promise.all([requester.save(), target.save()]);
-		} catch (err) {
-			throw err;
-		}
-
-		// Tạo notification cho target
-		try {
-			await this.createNotification(target._id, {
-				type: 'friend_request',
-				title: 'New friend request',
-				message: `${requester.name || requester.fullName || 'Someone'} has sent you a friend request`,
-				data: { from: requester._id }
-			});
-		} catch (err) {
-			// non-blocking: nếu lưu notification thất bại, vẫn trả về kết quả gửi friend request
-			console.warn('Failed to create notification for friend request:', err.message);
-		}
-
-		return {
-			success: true,
-			message: 'Friend request sent',
-			data: { to: target._id }
-		};
-	}
-
-	// Thêm: hủy (rút) lời mời kết bạn đã gửi
 	async cancelFriendRequest(requesterId, targetId) {
 		if (!requesterId) throw new Error('Unauthorized');
 		if (!targetId) throw new Error('Target id is required');
 		if (!mongoose.Types.ObjectId.isValid(targetId)) throw new Error('Invalid target id');
-
 		if (String(requesterId) === String(targetId)) {
 			throw new Error('Cannot cancel friend request to yourself');
 		}
-
 		const [requester, target] = await Promise.all([
 			User.findById(requesterId),
 			User.findById(targetId)
 		]);
-
 		if (!requester || !target) {
 			throw new Error('User not found');
 		}
-
-		const hasOutgoing = Array.isArray(requester.outgoingFriendRequests) && requester.outgoingFriendRequests.map(String).includes(String(targetId));
-		const hasIncoming = Array.isArray(target.incomingFriendRequests) && target.incomingFriendRequests.map(String).includes(String(requesterId));
-
-		if (!hasOutgoing || !hasIncoming) {
-			throw new Error('No pending friend request to cancel');
+		const existingRequest = await FriendRequest.findOne({
+			fromUserId: requesterId,
+			toUserId: targetId,
+			status: 'pending'
+		});
+		if (!existingRequest) {
+			throw new Error('No pending friend request found to cancel');
 		}
-
-		// remove the pending request both sides
-		requester.outgoingFriendRequests = (requester.outgoingFriendRequests || []).filter(id => String(id) !== String(targetId));
-		target.incomingFriendRequests = (target.incomingFriendRequests || []).filter(id => String(id) !== String(requesterId));
-
-		await Promise.all([requester.save(), target.save()]);
-
+		await FriendRequest.deleteOne({ _id: existingRequest._id });
 		return {
 			success: true,
 			message: 'Friend request cancelled',
-			data: { cancelled: target._id }
 		};
 	}
-
-	// Thêm: tạo và lưu thông báo (sử dụng collection Notification)
-	async createNotification(userId, payload) {
-		if (!userId) throw new Error('Target user id is required');
-		const note = {
-			userId,
-			type: payload.type || 'system',
-			title: payload.title || '',
-			body: payload.message || payload.body || '',
-			refId: (payload.data && payload.data.refId) || payload.refId || null,
-			refType: (payload.data && payload.data.refType) || payload.refType || null,
-			read: false,
-			createdAt: new Date()
-		};
-		const created = await Notification.create(note);
-		return { success: true, message: 'Notification created', data: created };
-	}
-
-	// Thêm: lấy danh sách thông báo (mới nhất trước)
-	async getNotifications(userId, opts = {}) {
-		if (!userId) throw new Error('Unauthorized');
-		const limit = parseInt(opts.limit, 10) || 50;
-		const skip = parseInt(opts.skip, 10) || 0;
-		const notes = await Notification.find({ userId })
-			.sort({ createdAt: -1 })
-			.skip(skip)
-			.limit(limit)
-			.lean();
-		return { success: true, message: 'Notifications fetched', data: notes };
-	}
-
-	// Thêm: đánh dấu 1 thông báo đã đọc
-	async markNotificationRead(userId, notificationId) {
-		if (!userId) throw new Error('Unauthorized');
-		if (!notificationId) throw new Error('Notification id required');
-		const updated = await Notification.findOneAndUpdate(
-			{ _id: notificationId, userId },
-			{ $set: { read: true } },
-			{ new: true }
-		).lean();
-		if (!updated) throw new Error('Notification not found');
-		return { success: true, message: 'Notification marked as read', data: updated };
-	}
-
-	// Thêm: xóa 1 thông báo
-	async deleteNotification(userId, notificationId) {
-		if (!userId) throw new Error('Unauthorized');
-		if (!notificationId) throw new Error('Notification id required');
-		const res = await Notification.deleteOne({ _id: notificationId, userId });
-		if (!res.deletedCount) throw new Error('Notification not found');
-		return { success: true, message: 'Notification deleted', data: { id: notificationId } };
-	}
-
 	// Thêm: tạo nhóm
 	async createGroup(ownerId, name, memberIds = []) {
 		if (!ownerId) throw new Error('Unauthorized');

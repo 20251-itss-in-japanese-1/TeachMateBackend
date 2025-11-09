@@ -1,0 +1,127 @@
+const mongoose = require('mongoose');
+const User = require('../model/User')
+const FriendRequest = require('../model/FriendRequest');
+const Notification = require('../model/Notification');
+const Socket = require('../socket/socket');
+
+class FriendService {
+    sendFriendRequest = async (requesterId, targetId) => {
+        if (!requesterId) {
+            throw new Error('Unauthorized');
+        }
+        if (!targetId) {
+            throw new Error('Target user id is required');
+        }
+        if (!mongoose.Types.ObjectId.isValid(targetId)) {
+            throw new Error('Invalid target id');
+        }
+        if (String(requesterId) === String(targetId)) {
+            throw new Error('Cannot send friend request to yourself');
+        }
+
+        const [requester, target] = await Promise.all([
+            User.findById(requesterId),
+            User.findById(targetId)
+        ]);
+
+        if (!requester || !target) {
+            throw new Error('User not found');
+        }
+        if (requester.friends.includes(targetId)){
+            throw new Error("Already Friends");
+        }
+        const existRequest = await FriendRequest.findOne({
+            fromUserId: requesterId,
+            toUserId: targetId,
+            status: 'pending'
+        });
+        if (existRequest) {
+            throw new Error('Friend request already sent');
+        }
+		const newRequest = await FriendRequest.create({
+			fromUserId: requesterId,
+			toUserId: targetId,
+			status: 'pending'
+		});
+		const notification = await Notification.create({
+			userId: targetId,
+			type: 'friend_request',
+			title: 'New friend request',
+			body: `${requester.name || 'Someone'} sent you a friend request.`,
+			refId: newRequest._id,
+			refType: 'request'
+		});
+        const io = Socket.getIO();
+        const onlineUsers = Socket.getOnlineUsers();
+        const targetSocketId = onlineUsers.get(targetId.toString());
+        if (targetSocketId) {
+			io.to(targetSocketId).emit('notification:new', notification);
+		}
+        return { success: true, message: 'Friend request sent' };
+    }
+    acceptFriendRequest = async (requestId, userId) => {
+        const request = await FriendRequest.findById(requestId);
+        if (!request) throw new Error('Request not found');
+		if (String(request.toUserId) !== String(userId)) throw new Error('Unauthorized');
+        if (request.status !== 'pending') {
+			throw new Error('Request already processed');
+		}
+        request.status = 'approved';
+		request.decidedAt = new Date();
+		await request.save();
+        await Promise.all([
+			User.findByIdAndUpdate(request.fromUserId, {
+				$addToSet: { friends: request.toUserId }
+			}),
+			User.findByIdAndUpdate(request.toUserId, {
+				$addToSet: { friends: request.fromUserId }
+			})
+		]);
+        const notification = await Notification.create({
+			userId: request.fromUserId,
+			type: 'system',
+			title: 'Friend request accepted',
+			body: 'Your friend request has been accepted!',
+			refId: request._id,
+			refType: 'request'
+		});
+        const io = Socket.getIO();
+		const onlineUsers = Socket.getOnlineUsers();
+		const requesterSocket = onlineUsers.get(request.fromUserId.toString());
+		if (requesterSocket) {
+			io.to(requesterSocket).emit('friend:accepted', {
+				fromUserId: request.toUserId,
+				message: 'Your friend request was accepted'
+			});
+			io.to(requesterSocket).emit('notification:new', notification);
+		}
+        return { success: true, message: 'Friend request accepted' };
+    }
+    rejectFriendRequest = async (requestId, userId) => {
+        const request = await FriendRequest.findById(requestId);
+		if (!request) throw new Error('Request not found');
+		if (String(request.toUserId) !== String(userId)) throw new Error('Unauthorized');
+
+		if (request.status !== 'pending') {
+			throw new Error('Request already processed');
+		}
+        request.status = 'rejected';
+        request.decidedAt = new Date();
+		await request.save();
+        return { success: true, message: 'Friend request rejected' };
+    }
+    getAllFriends = async (userId) => {
+        if (!userId) throw new Error("invalid token");
+        const rs = await User.findById(userId).select('friends').populate('friends');
+        return {
+            success: true,
+            message: "Ok",
+            data: {
+                friends: rs.friends
+            }
+        }
+    }
+}
+
+
+module.exports = new FriendService();
