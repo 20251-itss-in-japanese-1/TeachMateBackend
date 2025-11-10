@@ -2,20 +2,24 @@ const mongoose = require('mongoose');
 const { Schema } = mongoose;
 
 const attachmentSchema = new Schema({
-	kind: { type: String, required: true, enum: ['image', 'file', 'link'] },
-	mime: { type: String },
-	url: { type: String }
+  kind: { type: String, enum: ['image', 'file', 'link'], required: true },
+  mime: String,
+  url: String
 }, { _id: false });
 
 const messageSchema = new Schema({
-	threadId: { type: Schema.Types.ObjectId, ref: 'Thread', required: true },
-	senderId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
-	content: { type: String, maxlength: 2000 },
-	attachments: { type: [attachmentSchema], default: [] },
-	reactions: { type: [String], default: [] },
-	createdAt: { type: Date, required: true, default: Date.now },
-	isSystem: { type: Boolean, default: false },
-	visibility: { type: String, enum: ['normal', 'unknown_sender_box'], default: 'normal' }
+  threadId: { type: Schema.Types.ObjectId, ref: 'Thread', required: true },
+  senderId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+  contentType: { type: String, enum: ['text', 'schedule', 'poll', 'file'], default: 'text' },
+
+  content: { type: String, maxlength: 2000 }, 
+  attachments: { type: [attachmentSchema], default: [] },
+
+  scheduleId: { type: Schema.Types.ObjectId, ref: 'ChatSchedule', default: null },
+  pollId: { type: Schema.Types.ObjectId, ref: 'Poll', default: null },
+
+  reactions: { type: [String], default: [] },
+  createdAt: { type: Date, default: Date.now }
 }, { versionKey: false });
 
 messageSchema.index({ threadId: 1, createdAt: 1 });

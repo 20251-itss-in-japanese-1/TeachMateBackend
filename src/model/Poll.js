@@ -1,15 +1,24 @@
 const mongoose = require('mongoose');
 const { Schema } = mongoose;
 
+const pollOptionSchema = new Schema({
+  text: { type: String, required: true },
+  votes: { type: Number, default: 0 },  
+  voters: [{ type: Schema.Types.ObjectId, ref: 'User' }] 
+}, { _id: true });
+
+
 const pollSchema = new Schema({
-	groupId: { type: Schema.Types.ObjectId, ref: 'Group', required: true },
-	createdBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },
-	question: { type: String, required: true, maxlength: 100 },
-	options: { type: [String], required: true, validate: v => Array.isArray(v) && v.length >= 2 && v.length <= 5 },
-	createdAt: { type: Date, required: true, default: Date.now },
-	closed: { type: Boolean, required: true, default: false }
+  threadId: { type: Schema.Types.ObjectId, ref: 'Thread', required: true }, 
+  creatorId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+  question: { type: String, required: true, maxlength: 100 },
+  options: { type: [pollOptionSchema], required: true, validate: v => v.length >= 2 },
+  isActive: { type: Boolean, default: true }, 
+  createdAt: { type: Date, default: Date.now },
+  updatedAt: { type: Date, default: Date.now }
 }, { versionKey: false });
 
-pollSchema.index({ groupId: 1, createdAt: -1 });
+
+pollSchema.index({ threadId: 1, createdAt: -1 });
 
 module.exports = mongoose.model('Poll', pollSchema);

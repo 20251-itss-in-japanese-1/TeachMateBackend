@@ -5,8 +5,9 @@ const authMiddleware = require('../middleware/AuthMiddleware');
 const router = express.Router();
 
 router.get("/get-all", authMiddleware.isAuth, friendController.getAllFriends);
+router.get("/requests", authMiddleware.isAuth, friendController.getFriendRequests);
 router.post("/send-request", authMiddleware.isAuth, friendController.sendFriendRequest);
 router.post("/accept-request", authMiddleware.isAuth, friendController.acceptFriendRequest);
 router.post("/reject-request", authMiddleware.isAuth, friendController.rejectFriendRequest);
-
+router.get("/suggestions", authMiddleware.isAuth, friendController.friendSuggestions);
 module.exports = router;
