@@ -5,7 +5,7 @@ class Socket {
     initSocket = (server) => {
         io = new Server(server, {
             cors: {
-                origin: "http://localhost:3001",
+                origin: ["http://localhost:3001", "https://teach-mate-frontend.vercel.app/"],
                 methods: ["GET", "POST"],
                 credentials: true
             }
