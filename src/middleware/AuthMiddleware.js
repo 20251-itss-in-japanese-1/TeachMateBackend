@@ -16,17 +16,13 @@ class AuthMiddleware {
                     message: 'No token provided',
                 });
             }
-
-            // Verify JWT
             const decoded = jwt.verify(token, process.env.JWT_SECRET);
             console.log('\x1b[32m[AuthMiddleware]\x1b[0m Decoded user:', decoded);
 
-            req.user = decoded; // Gán user đã decode vào request
+            req.user = decoded; 
             next();
         } catch (error) {
             console.error('\x1b[31m[AuthMiddleware Error]\x1b[0m', error.message);
-
-            // Kiểm tra loại lỗi để phản hồi chính xác hơn
             if (error.name === 'TokenExpiredError') {
                 return res.status(401).json({ success: false, message: 'Token expired' });
             }
@@ -37,8 +33,6 @@ class AuthMiddleware {
             return res.status(500).json({ success: false, message: 'Authentication failed' });
         }
     }
-
-    // Middleware kiểm tra quyền admin
     isAdmin(req, res, next) {
         console.log('\x1b[35m[AuthMiddleware]\x1b[0m Checking admin role for user:', req.user);
 
