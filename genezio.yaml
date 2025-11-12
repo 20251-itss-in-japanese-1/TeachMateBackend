@@ -1,6 +1,6 @@
 backend:
     functions:
-        - entry: index.mjs
+        - entry: index.js 
           handler: handler
           name: express
           path: .
