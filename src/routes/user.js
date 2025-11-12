@@ -6,6 +6,6 @@ router.get("/me", authMiddleware.isAuth, userController.getMyProfile);
 router.post("/me/edit", authMiddleware.isAuth, userController.updateProfile); 
 router.get('/teacher/:id', authMiddleware.isAuth, userController.viewTeacherProfile);
 router.get('/search', authMiddleware.isAuth, userController.searchUsers);
-
+router.post('/report', authMiddleware.isAuth, userController.report);
 module.exports = router;
 

@@ -58,6 +58,21 @@ class UserController {
             });
         }
     }
+    report = async (req, res) => {
+        const reporterId = req.user && req.user.id;
+        const targetUserId = req.params && req.params.id;
+        const { reason, targetType } = req.body;
+        try {
+            const result = await userService.report(reporterId, targetUserId, reason, targetType);
+            console.log(result);
+            res.status(200).json(result);
+        } catch (error) {
+            res.status(404).json({
+                message: error.message,
+                success: false
+            });
+        }
+    }
 }
 
 module.exports = new UserController();

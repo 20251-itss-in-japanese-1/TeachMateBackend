@@ -1,4 +1,6 @@
 const User = require('../model/User');
+const Report = require('../model/Report');
+const Notification = require('../model/Notification');
 class UserService {
 	getMyProfile = async (userId) => {
 		const user = await User.findById(userId).select('-password');
@@ -113,7 +115,36 @@ class UserService {
 			data: users
 		};
 	}
+	report = async (reporterId, targetUserId, reason, targetType) => {
+		if (!reporterId) {
+			throw new Error('Unauthorized');
+		}
+		if (!targetUserId) {
+			throw new Error('Target user ID is required');
+		}
+		if (!reason || String(reason).trim() === '') {
+			throw new Error('Reason for report is required');
+		}
 
+		const report = new Report({
+			targetType: targetType || 'user',
+			targetId: targetUserId,
+			reporterId,
+			reason: String(reason).trim()
+		});
+		await report.save();
+		const notification = new Notification({
+			userId: targetUserId,
+			type: 'report',
+			message: `Your profile has been reported for the following reason: ${reason}`,
+			relatedId: report._id
+		});
+		await notification.save();
+		return {
+			success: true,
+			message: 'Report submitted successfully',
+		};
+	}
 }
 
 module.exports = new UserService();
