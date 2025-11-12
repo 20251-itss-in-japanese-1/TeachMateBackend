@@ -4,10 +4,10 @@ class ChatController {
     // Send a text message
     sendTextMessage = async (req, res) => {
         const userId = req.user && req.user.id;
-        const { threadId, content } = req.body;
+        const { threadId, content, recipientId } = req.body;
         
         try {
-            const result = await chatService.sendTextMessage(threadId, userId, content);
+            const result = await chatService.sendTextMessage({ threadId, senderId: userId, recipientId, content });
             res.status(201).json(result);
         } catch (error) {
             res.status(400).json({
@@ -73,6 +73,38 @@ class ChatController {
         
         try {
             const result = await chatService.deleteMessage(messageId, userId);
+            res.status(200).json(result);
+        } catch (error) {
+            res.status(400).json({
+                message: error.message,
+                success: false
+            });
+        }
+    }
+
+    // Mark message(s) as read
+    markAsRead = async (req, res) => {
+        const userId = req.user && req.user.id;
+        const { messageId, threadId } = req.body;
+        
+        try {
+            const result = await chatService.markAsRead(userId, { messageId, threadId });
+            res.status(200).json(result);
+        } catch (error) {
+            res.status(400).json({
+                message: error.message,
+                success: false
+            });
+        }
+    }
+
+    // Get unread message count
+    getUnreadCount = async (req, res) => {
+        const userId = req.user && req.user.id;
+        const { threadId } = req.query;
+        
+        try {
+            const result = await chatService.getUnreadCount(userId, threadId);
             res.status(200).json(result);
         } catch (error) {
             res.status(400).json({

@@ -13,7 +13,7 @@ dotenv.config()
 const app = express()
 const server = http.createServer(app);
 app.use(cors({
-    origin: 'http://localhost:3001', // URL FE
+    origin: ['http://localhost:3001', 'https://teach-mate-frontend.vercel.app/'], // URL FE
     credentials: true, // cho phép gửi cookie
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
 }));

@@ -16,7 +16,7 @@ router.get(
     const token = req.user.token;
     console.log("Google OAuth token:", token);
 
-    res.redirect(`http://localhost:3001/?token=${token}`);
+    res.redirect(`https://teach-mate-frontend.vercel.app/?token=${token}`);
   }
 );
 

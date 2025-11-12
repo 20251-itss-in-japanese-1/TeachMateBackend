@@ -17,7 +17,7 @@ const messageSchema = new Schema({
 
   scheduleId: { type: Schema.Types.ObjectId, ref: 'ChatSchedule', default: null },
   pollId: { type: Schema.Types.ObjectId, ref: 'Poll', default: null },
-
+  readBy: [{ type: Schema.Types.ObjectId, ref: 'User', default: [] }],
   reactions: { type: [String], default: [] },
   createdAt: { type: Date, default: Date.now }
 }, { versionKey: false });
