@@ -82,19 +82,9 @@ class ChatService {
             await Notification.insertMany(notifications, { ordered: false }).catch(() => {});
         }
 
-        // Populate message trả về
-        const populatedMessage = await Message.findById(newMessage._id)
-        .populate('senderId', 'name avatarUrl email')
-        .populate({
-            path: 'threadId',
-            select: 'type members lastMessage createdBy',
-            populate: { path: 'members.userId', select: 'name avatarUrl' }
-        });
-
         return {
-        success: true,
-        message: 'Message sent successfully',
-        data: populatedMessage
+            success: true,
+            message: 'Message sent successfully'
         };
     };
 
