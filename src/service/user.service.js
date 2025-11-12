@@ -135,9 +135,12 @@ class UserService {
 		await report.save();
 		const notification = new Notification({
 			userId: targetUserId,
-			type: 'report',
-			message: `Your profile has been reported for the following reason: ${reason}`,
-			relatedId: report._id
+			type: 'system',
+			title: 'Profile reported',
+			body: `Your profile has been reported for the following reason: ${reason}`,
+			refId: report._id,
+			refType: 'report',
+			read: false
 		});
 		await notification.save();
 		return {
