@@ -1,5 +1,4 @@
 const User = require('../model/User');
-const FriendRequest = require('../model/FriendRequest');
 class UserService {
 	getMyProfile = async (userId) => {
 		const user = await User.findById(userId).select('-password');

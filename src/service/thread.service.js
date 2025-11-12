@@ -202,7 +202,7 @@ class ThreadService {
         if (!userId) {
             throw new Error('Unauthorized');
         }
-        if (!name || !memberIds || memberIds.length < 2) {
+        if (!name || !memberIds) {
             throw new Error('Invalid input data');
         }
         const members = memberIds.map(id => ({ userId: id, role: 'member' }));
