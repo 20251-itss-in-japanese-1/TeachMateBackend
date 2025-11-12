@@ -127,7 +127,8 @@ class FriendService {
             throw new Error('User not found');
         }
         const relatedRequests = await FriendRequest.find({
-            $or: [{ fromUserId: userId }, { toUserId: userId }]
+            $or: [{ fromUserId: userId }, { toUserId: userId }],
+            status: { $in: ['pending', 'approved'] } 
         }).select('fromUserId toUserId');
         const relatedUserIds = relatedRequests.map(req =>
             req.fromUserId.toString() === userId.toString()
