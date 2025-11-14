@@ -5,13 +5,6 @@ const User = require('../model/User');
 const Notification = require('../model/Notification');
 
 class PollService {
-    /**
-     * Create a poll in a thread
-     * @param {string} threadId - The ID of the thread
-     * @param {string} userId - The ID of the user creating poll
-     * @param {Object} pollData - Poll details (question, options)
-     * @returns {Object} - Success response with poll and message data
-     */
     createPoll = async (threadId, userId, pollData) => {
         const { question, options } = pollData;
 

@@ -74,8 +74,6 @@ class ScheduleService {
         });
 
         await scheduleMessage.save();
-
-        // Update thread's lastMessage
         thread.lastMessage = scheduleMessage._id;
         thread.updatedAt = new Date();
         await thread.save();

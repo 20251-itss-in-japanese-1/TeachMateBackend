@@ -16,7 +16,20 @@ class ChatController {
             });
         }
     }
-
+    sendMessageFile = async (req, res) => {
+        const userId = req.user && req.user.id;
+        const { threadId, recipientId, content} = req.body;
+        const files = req.files;
+        try {
+            const result = await chatService.sendMessageWithFile({ threadId, senderId: userId, recipientId, content, files });
+            res.status(201).json(result);
+        } catch (error) {
+            res.status(400).json({
+                message: error.message,
+                success: false
+            });
+        }
+    }
     // Add reaction to a message
     addReaction = async (req, res) => {
         const userId = req.user && req.user.id;

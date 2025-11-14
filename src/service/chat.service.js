@@ -11,8 +11,6 @@ class ChatService {
         }
         if (!content || content.trim().length === 0) throw new Error('Message content cannot be empty');
         if (content.length > 2000) throw new Error('Message content exceeds maximum length of 2000 characters');
-
-        // Lấy sender và danh sách bạn bè
         const sender = await User.findById(senderId).populate('friends', '_id');
         if (!sender) throw new Error('Sender not found');
 
@@ -85,6 +83,131 @@ class ChatService {
         return {
             success: true,
             message: 'Message sent successfully'
+        };
+    };
+    sendMessageWithFile = async ({ 
+        threadId = null, 
+        senderId, 
+        recipientId = null, 
+        content = "", 
+        files = [] 
+    }) => {
+
+        if (!senderId) throw new Error("Sender ID is required");
+        if ((!threadId || threadId === "null") && !recipientId) {
+            throw new Error("Either threadId or recipientId is required");
+        }
+
+        const sender = await User.findById(senderId).populate("friends", "_id");
+        if (!sender) throw new Error("Sender not found");
+
+        // ==========================
+        // 1. GET OR CREATE THREAD
+        // ==========================
+        let thread = null;
+        if (threadId && mongoose.Types.ObjectId.isValid(threadId)) {
+            thread = await Thread.findOne({ _id: threadId, "members.userId": senderId });
+            if (!thread) throw new Error("Thread not found or you are not a member");
+        } else {
+            const ids = [senderId.toString(), recipientId.toString()].sort();
+            const memberHash = ids.join("_");
+
+            thread = await Thread.findOne({
+                memberHash,
+                type: { $in: ["direct_friend", "direct_stranger"] }
+            });
+
+            if (!thread) {
+                const isFriend = sender.friends.some(
+                    f => f._id.toString() === recipientId.toString()
+                );
+
+                thread = await Thread.create({
+                    type: isFriend ? "direct_friend" : "direct_stranger",
+                    members: [
+                        { userId: senderId, role: "member", lastReadAt: new Date() },
+                        { userId: recipientId, role: "member", lastReadAt: null }
+                    ],
+                    createdBy: senderId,
+                    memberHash
+                });
+            }
+        }
+
+        const createdMessages = [];
+        if (content && content.trim().length > 0) {
+            const textMsg = await Message.create({
+                threadId: thread._id,
+                senderId,
+                contentType: "text",
+                content: content.trim(),
+                attachments: [],
+                readBy: [senderId],
+                reactions: [],
+                createdAt: new Date()
+            });
+
+            createdMessages.push(textMsg);
+        }
+        for (const f of files) {
+            let kind = "file";
+            if (f.mimetype.startsWith("image/")) kind = "image";
+
+            const fileMsg = await Message.create({
+                threadId: thread._id,
+                senderId,
+                contentType: "file",
+                content: "",
+                attachments: [
+                    {
+                        kind,
+                        mime: f.mimetype,
+                        url: f.path
+                    }
+                ],
+                readBy: [senderId],
+                reactions: [],
+                createdAt: new Date()
+            });
+
+            createdMessages.push(fileMsg);
+        }
+        if (createdMessages.length > 0) {
+            const last = createdMessages[createdMessages.length - 1];
+
+            thread.lastMessage = last._id;
+            thread.updatedAt = new Date();
+
+            const senderMember = thread.members.find(
+                m => m.userId.toString() === senderId.toString()
+            );
+            if (senderMember) senderMember.lastReadAt = new Date();
+
+            await thread.save();
+        }
+        const otherMembers = thread.members.filter(
+            m => m.userId.toString() !== senderId.toString()
+        );
+
+        const notifications = otherMembers.map(m => ({
+            userId: m.userId,
+            type: "message",
+            title: `New message from ${sender.name}`,
+            body: content ? content.slice(0, 100) : "Sent an attachment",
+            refId: thread._id,
+            refType: "thread",
+            read: false,
+            createdAt: new Date()
+        }));
+
+        if (notifications.length) {
+            await Notification.insertMany(notifications, { ordered: false }).catch(() => {});
+        }
+
+        return {
+            success: true,
+            message: "Message(s) sent successfully",
+            messages: createdMessages
         };
     };
 
@@ -246,13 +369,6 @@ class ChatService {
         };
     }
 
-    /**
-     * Mark message(s) as read
-     * @param {string} userId - The ID of the user marking as read
-     * @param {string} messageId - Single message ID (optional if threadId provided)
-     * @param {string} threadId - Thread ID to mark all messages as read (optional if messageId provided)
-     * @returns {Object} - Success response
-     */
     markAsRead = async (userId, { messageId = null, threadId = null }) => {
         if (!userId) {
             throw new Error('User ID is required');
@@ -357,13 +473,6 @@ class ChatService {
             };
         }
     }
-
-    /**
-     * Get unread message count for a user
-     * @param {string} userId - The ID of the user
-     * @param {string} threadId - Optional thread ID to get count for specific thread
-     * @returns {Object} - Success response with unread count
-     */
     getUnreadCount = async (userId, threadId = null) => {
         if (!userId) {
             throw new Error('User ID is required');
