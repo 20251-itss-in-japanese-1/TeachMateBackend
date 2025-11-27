@@ -268,7 +268,6 @@ class ThreadService {
                 else if (att.kind === 'file') result.file.push(att);
             });
         });
-
         return {
             success: true,
             message: 'Attachments fetched successfully',
