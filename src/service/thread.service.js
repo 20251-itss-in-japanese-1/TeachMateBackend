@@ -2,6 +2,7 @@ const Thread = require('../model/Thread');
 const Message = require('../model/Message');
 const Poll = require('../model/Poll');
 const ChatSchedule = require('../model/ChatSchedule');
+const mongoose = require('mongoose');
 class ThreadService {
     getUserThreads = async (userId) => {
         if (!userId) {
@@ -238,6 +239,40 @@ class ThreadService {
             success: true,
             message: 'You have left the group thread successfully',
             data: null
+        };
+    }
+    getAttachmenThread = async (userId, threadId) => {
+        if (!userId) {
+            throw new Error('Unauthorized');
+        }
+        if (!mongoose.Types.ObjectId.isValid(threadId)) {
+            throw new Error('Invalid threadId');
+        }
+        const thread = await Thread.findOne({
+            _id: threadId,
+            'members.userId': userId
+        }).lean();
+        if (!thread) {
+            throw new Error('Thread not found or access denied');
+        }
+        const messages = await Message.find({ threadId }, { attachments: 1, _id: 0 }).lean();
+        const result = {
+            link: [],
+            image: [],
+            file: []
+        };
+        messages.forEach(msg => {
+            (msg.attachments || []).forEach(att => {
+                if (att.kind === 'link') result.link.push(att);
+                else if (att.kind === 'image') result.image.push(att);
+                else if (att.kind === 'file') result.file.push(att);
+            });
+        });
+
+        return {
+            success: true,
+            message: 'Attachments fetched successfully',
+            data: result
         };
     }
 }

@@ -4,6 +4,7 @@ const authMiddleware = require('../middleware/AuthMiddleware');
 const router = express.Router();
 
 router.get('/', authMiddleware.isAuth, threadController.getUserThreads);
+router.get('/attachments/:threadId', authMiddleware.isAuth, threadController.getThreadAttachments);
 router.get('/strangers', authMiddleware.isAuth, threadController.getUserThreadStrangers);
 router.get('/:threadId', authMiddleware.isAuth, threadController.getThreadById);
 router.post('/group', authMiddleware.isAuth, threadController.createThreadGroup);
