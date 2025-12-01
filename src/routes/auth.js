@@ -1,13 +1,24 @@
+
 const express = require('express');
+const authController = require('../controller/auth.controller');
+const authMiddleware = require('../middleware/AuthMiddleware');
 const router = express.Router();
-const userController = require('../controller/usercontroller');
+const passport = require('passport');
+router.post("/register", authController.register);
+router.post("/login", authController.login);
+router.post("/logout", authMiddleware.isAuth, authController.logout);
+router.get("/google", passport.authenticate('google', { scope: ['profile', 'email'], prompt: 'consent'}));
+router.get(
+  "/google/callback",
+  passport.authenticate('google', { failureRedirect: '/login', session: false }),
+  (req, res) => {
+    if (!req.user) return res.redirect('/login');
+    const token = req.user.token;
+    console.log("Google OAuth token:", token);
 
-// POST /auth/register
-router.post('/register', userController.register);
+    res.redirect(`https://teach-mate-frontend.vercel.app/?token=${token}`);
+  }
+);
 
-// POST /auth/login
-router.post('/login', userController.login);
-
-// (optional) additional auth endpoints can be added here
 
 module.exports = router;
