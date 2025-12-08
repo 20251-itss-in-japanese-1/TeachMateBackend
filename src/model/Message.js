@@ -19,6 +19,7 @@ const messageSchema = new Schema({
   pollId: { type: Schema.Types.ObjectId, ref: 'Poll', default: null },
   readBy: [{ type: Schema.Types.ObjectId, ref: 'User', default: [] }],
   reactions: { type: [String], default: [] },
+  deletedFor: [{ type: Schema.Types.ObjectId, ref: 'User', default: [] }],
   createdAt: { type: Date, default: Date.now }
 }, { versionKey: false });
 

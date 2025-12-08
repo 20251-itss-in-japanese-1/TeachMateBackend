@@ -2,68 +2,68 @@ const Thread = require('../model/Thread');
 const Message = require('../model/Message');
 const User = require('../model/User');
 const Notification = require('../model/Notification');
-const mongoose = require('mongoose');
 class ChatService {
-    sendTextMessage = async ({ threadId = null, senderId, recipientId = null, content }) => {
+    getorCreateThread = async ({senderId, recipientId}) => {
+        if (!senderId || !recipientId) throw new Error('Missing senderId or recipientId');
+        const ids = [senderId.toString(), recipientId.toString()].sort();
+        const memberHash = ids.join('_');
+        let thread = await Thread.findOne({
+            memberHash,
+            type: { $in: ['direct_friend', 'direct_stranger'] }
+        })
+        .populate('members.userId', 'name avatar');
+        if (thread) return {
+            success: true,
+            message: 'Thread fetched successfully',
+            data: thread
+        }
+        const sender = await User.findById(senderId).select('friends');
+        const isFriend = sender && sender.friends.some(f => f.toString() === recipientId.toString());
+        const newThread = await Thread.create({
+            type: isFriend ? 'direct_friend' : 'direct_stranger',
+            memberHash, 
+            createdBy: senderId,
+            members: [
+                { userId: senderId, role: 'member', lastReadAt: new Date() }, 
+                { userId: recipientId, role: 'member', lastReadAt: null }
+            ]
+        });
+        const data = await newThread.populate('members.userId', 'name avatar');
+        return {
+            success: true,
+            message: 'Thread created successfully',
+            data
+        };
+    } 
+
+    sendTextMessage = async ({ threadId, senderId, content }) => {
         if (!senderId) throw new Error('Sender ID is required');
-        if ((!threadId || threadId === 'null') && !recipientId) {
-        throw new Error('Either threadId or recipientId is required');
+        if (!threadId || threadId === 'null') {
+            throw new Error('Thread ID is required');
         }
         if (!content || content.trim().length === 0) throw new Error('Message content cannot be empty');
         if (content.length > 2000) throw new Error('Message content exceeds maximum length of 2000 characters');
-        const sender = await User.findById(senderId).populate('friends', '_id');
+
+        const sender = await User.findById(senderId);
         if (!sender) throw new Error('Sender not found');
-
-        let thread = null;
-        if (threadId && mongoose.Types.ObjectId.isValid(threadId)) {
-        thread = await Thread.findOne({ _id: threadId, 'members.userId': senderId });
+        const thread = await Thread.findOne({ _id: threadId, 'members.userId': senderId });
         if (!thread) throw new Error('Thread not found or you are not a member');
-        } else {
-        if (!recipientId) throw new Error('Recipient ID is required for new 1-1 message');
-
-        const ids = [senderId.toString(), recipientId.toString()].sort();
-        const memberHash = ids.join('_');
-
-        // Kiểm tra xem đã có thread direct chưa
-        thread = await Thread.findOne({ memberHash, type: { $in: ['direct_friend', 'direct_stranger'] } });
-
-        if (!thread) {
-            // Kiểm tra friend hay stranger
-            const isFriend = sender.friends.some(f => f._id.toString() === recipientId.toString());
-            const directType = isFriend ? 'direct_friend' : 'direct_stranger';
-
-            thread = await Thread.create({
-            type: directType,
-            members: [
-                { userId: senderId, role: 'member', lastReadAt: new Date() },
-                { userId: recipientId, role: 'member', lastReadAt: null }
-            ],
-            createdBy: senderId,
-            memberHash
-            });
-        }
-        }
-
-        // Tạo message mới
         const newMessage = await Message.create({
-        threadId: thread._id,
-        senderId: senderId,
-        contentType: 'text',
-        content: content.trim(),
-        attachments: [],
-        reactions: [],
-        readBy: [senderId], // Sender automatically reads their own message
-        createdAt: new Date()
+            threadId: thread._id,
+            senderId: senderId,
+            contentType: 'text',
+            content: content.trim(),
+            attachments: [],
+            reactions: [],
+            readBy: [senderId],
+            createdAt: new Date()
         });
 
-        // Cập nhật thread
         thread.lastMessage = newMessage._id;
         thread.updatedAt = new Date();
         const senderMember = thread.members.find(m => m.userId.toString() === senderId.toString());
         if (senderMember) senderMember.lastReadAt = new Date();
         await thread.save();
-
-        // Tạo notification cho các member còn lại
         const otherMembers = thread.members.filter(m => m.userId.toString() !== senderId.toString());
         const notifications = otherMembers.map(m => ({
             userId: m.userId,
@@ -86,53 +86,20 @@ class ChatService {
         };
     };
     sendMessageWithFile = async ({ 
-        threadId = null, 
+        threadId, 
         senderId, 
-        recipientId = null, 
         content = "", 
         files = [] 
     }) => {
-
         if (!senderId) throw new Error("Sender ID is required");
-        if ((!threadId || threadId === "null") && !recipientId) {
-            throw new Error("Either threadId or recipientId is required");
+        if (!threadId || threadId === "null") {
+            throw new Error("Thread ID is required");
         }
 
-        const sender = await User.findById(senderId).populate("friends", "_id");
+        const sender = await User.findById(senderId);
         if (!sender) throw new Error("Sender not found");
-
-        // ==========================
-        // 1. GET OR CREATE THREAD
-        // ==========================
-        let thread = null;
-        if (threadId && mongoose.Types.ObjectId.isValid(threadId)) {
-            thread = await Thread.findOne({ _id: threadId, "members.userId": senderId });
-            if (!thread) throw new Error("Thread not found or you are not a member");
-        } else {
-            const ids = [senderId.toString(), recipientId.toString()].sort();
-            const memberHash = ids.join("_");
-
-            thread = await Thread.findOne({
-                memberHash,
-                type: { $in: ["direct_friend", "direct_stranger"] }
-            });
-
-            if (!thread) {
-                const isFriend = sender.friends.some(
-                    f => f._id.toString() === recipientId.toString()
-                );
-
-                thread = await Thread.create({
-                    type: isFriend ? "direct_friend" : "direct_stranger",
-                    members: [
-                        { userId: senderId, role: "member", lastReadAt: new Date() },
-                        { userId: recipientId, role: "member", lastReadAt: null }
-                    ],
-                    createdBy: senderId,
-                    memberHash
-                });
-            }
-        }
+        const thread = await Thread.findOne({ _id: threadId, "members.userId": senderId });
+        if (!thread) throw new Error("Thread not found or you are not a member");
 
         const createdMessages = [];
         if (content && content.trim().length > 0) {
@@ -146,7 +113,6 @@ class ChatService {
                 reactions: [],
                 createdAt: new Date()
             });
-
             createdMessages.push(textMsg);
         }
         for (const f of files) {
@@ -169,12 +135,12 @@ class ChatService {
                 reactions: [],
                 createdAt: new Date()
             });
-
             createdMessages.push(fileMsg);
         }
+
+        // Update thread
         if (createdMessages.length > 0) {
             const last = createdMessages[createdMessages.length - 1];
-
             thread.lastMessage = last._id;
             thread.updatedAt = new Date();
 
@@ -182,9 +148,10 @@ class ChatService {
                 m => m.userId.toString() === senderId.toString()
             );
             if (senderMember) senderMember.lastReadAt = new Date();
-
             await thread.save();
         }
+
+        // Create notifications for other members
         const otherMembers = thread.members.filter(
             m => m.userId.toString() !== senderId.toString()
         );
@@ -355,14 +322,9 @@ class ChatService {
         if (!thread) {
             throw new Error('You are not a member of this thread');
         }
-        await Message.findByIdAndDelete(messageId);
-        if (thread.lastMessage && thread.lastMessage.toString() === messageId.toString()) {
-            const lastMessage = await Message.findOne({ threadId: thread._id })
-                .sort({ createdAt: -1 });
-            thread.lastMessage = lastMessage ? lastMessage._id : null;
-            await thread.save();
-        }
-
+        await Message.findByIdAndUpdate(messageId, {
+            $addToSet: { deletedFor: userId }
+        });
         return {
             success: true,
             message: 'Message deleted successfully'

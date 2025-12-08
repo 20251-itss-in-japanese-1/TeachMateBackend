@@ -1,6 +1,19 @@
 const chatService = require('../service/chat.service');
 
 class ChatController {
+    getorCreateThread = async (req, res) => {
+        const userId = req.user && req.user.id;
+        const { recipientId } = req.body;
+        try {
+            const result = await chatService.getorCreateThread({ senderId: userId, recipientId });
+            res.status(200).json(result);
+        } catch (error) {
+            res.status(400).json({
+                message: error.message,
+                success: false
+            });
+        }
+    }
     // Send a text message
     sendTextMessage = async (req, res) => {
         const userId = req.user && req.user.id;
