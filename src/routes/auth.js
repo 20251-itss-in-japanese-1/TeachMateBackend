@@ -2,10 +2,11 @@
 const express = require('express');
 const authController = require('../controller/auth.controller');
 const authMiddleware = require('../middleware/AuthMiddleware');
+const validate = require('../middleware/CheckUsernameAndPassword');
 const router = express.Router();
 const passport = require('passport');
-router.post("/register", authController.register);
-router.post("/login", authController.login);
+router.post("/register", validate.handleReg, authController.register);
+router.post("/login", validate.handleLog, authController.login);
 router.post("/logout", authMiddleware.isAuth, authController.logout);
 router.get("/google", passport.authenticate('google', { scope: ['profile', 'email'], prompt: 'consent'}));
 router.get(
