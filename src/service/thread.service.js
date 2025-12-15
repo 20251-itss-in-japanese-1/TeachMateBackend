@@ -11,7 +11,7 @@ class ThreadService {
 
         const threads = await Thread.find({
             'members.userId': userId,
-            type: { $in: ['direct_friend', 'group'] }
+            type: { $in: ['direct_friend', 'group', 'direct_stranger'] }
         })
         .sort({ updatedAt: -1 })
         .populate({
@@ -137,7 +137,10 @@ class ThreadService {
             { $set: { 'members.$.lastReadAt': new Date() } }
         );
         
-        let messages = await Message.find({ threadId })
+        let messages = await Message.find({
+                threadId,
+                deletedFor: { $ne: userId }
+            })
             .sort({ createdAt: 1 }) // cũ → mới
             .populate('senderId', 'name avatar avatarUrl email')
             .populate('readBy', 'name avatarUrl')
@@ -159,22 +162,16 @@ class ThreadService {
             if (m.contentType === 'poll' && m.pollId) {
                 m.poll = pollMap[m.pollId.toString()] || null;
             }
-            // Add read status for current user
-            // After updateMany above, all messages not from user should have userId in readBy
             if (m.senderId._id.toString() !== userId.toString()) {
-                // Ensure userId is in readBy (should be there after updateMany)
                 if (!m.readBy.some(reader => reader._id.toString() === userId.toString())) {
                     m.readBy.push({ _id: userId, name: '', avatarUrl: '' });
                 }
                 m.isReadByMe = true;
             } else {
-                // For own messages, check actual readBy
                 m.isReadByMe = m.readBy.some(reader => reader._id.toString() === userId.toString());
             }
             return m;
         });
-        
-        // Build basic thread info
         const threadInfo = {
             _id: thread._id,
             name: thread.name,

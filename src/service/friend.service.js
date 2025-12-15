@@ -3,7 +3,7 @@ const User = require('../model/User')
 const FriendRequest = require('../model/FriendRequest');
 const Notification = require('../model/Notification');
 const Socket = require('../socket/socket');
-
+const Thread = require('../model/Thread');
 class FriendService {
     sendFriendRequest = async (requesterId, targetId) => {
         if (!requesterId) {
@@ -85,16 +85,19 @@ class FriendService {
 			refId: request._id,
 			refType: 'request'
 		});
-        const io = Socket.getIO();
-		const onlineUsers = Socket.getOnlineUsers();
-		const requesterSocket = onlineUsers.get(request.fromUserId.toString());
-		if (requesterSocket) {
-			io.to(requesterSocket).emit('friend:accepted', {
-				fromUserId: request.toUserId,
-				message: 'Your friend request was accepted'
-			});
-			io.to(requesterSocket).emit('notification:new', notification);
-		}
+        let thread = await Thread.findOne({
+            type: 'direct_stranger',
+            memberHash: {
+                $in: [
+                    `${request.fromUserId}_${request.toUserId}`,
+                    `${request.toUserId}_${request.fromUserId}`
+                ]
+            }
+        });
+        if (thread) {
+            thread.type = 'direct_friend';
+            await thread.save();
+        }
         return { success: true, message: 'Friend request accepted' };
     }
     rejectFriendRequest = async (requestId, userId) => {
