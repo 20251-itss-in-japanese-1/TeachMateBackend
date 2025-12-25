@@ -28,7 +28,6 @@ const userSchema = new Schema({
 	facebookId: { type: String, default: null},
 }, { timestamps: true, versionKey: false });
 
-userSchema.index({ email: 1 }, { unique: true });
 
 // hash password before save if modified
 userSchema.pre('save', async function (next) {

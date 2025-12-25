@@ -17,7 +17,7 @@ class ThreadController {
     getUserThreadStrangers = async (req, res) => {
         const userId = req.user && req.user.id;
         try {
-            const result = await threadService.getUserThreadStraqngers(userId);
+            const result = await threadService.getUserThreadStrangers(userId);
             res.status(200).json(result);  
         } catch (error) {
             res.status(404).json({
@@ -66,11 +66,23 @@ class ThreadController {
             });
         }
     }
-        getThreadAttachments = async (req, res) => {
+    getThreadAttachments = async (req, res) => {
         const userId = req.user && req.user.id;
         const { threadId } = req.params;
         try {
             const result = await threadService.getAttachmenThread(userId, threadId);
+            res.status(200).json(result);  
+        } catch (error) {
+            res.status(400).json({
+                message: error.message,
+                success: false
+            });
+        }
+    }
+    getThreadGroup = async (req, res) => {
+        const userId = req.user && req.user.id;
+        try {
+            const result = await threadService.getThreadGroup(userId);
             res.status(200).json(result);  
         } catch (error) {
             res.status(400).json({

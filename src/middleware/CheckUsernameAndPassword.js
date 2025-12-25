@@ -81,15 +81,6 @@ class ValidateRegisterForm {
                     message: 'Password must be at least 8 characters and include uppercase, lowercase, and a number or symbol.'
                 });
             }
-
-            // 4. Nationality
-            if (!nationality || nationality.trim() === '') {
-                return res.status(400).json({
-                    success: false,
-                    message: 'Nationality is required.'
-                });
-            }
-
             next();
 
         } catch (error) {

@@ -271,5 +271,27 @@ class ThreadService {
             data: result
         };
     }
+    getThreadGroup = async (userId) => {
+        if (!userId) {
+            throw new Error('Unauthorized');
+        }
+
+        const objectUserId = new mongoose.Types.ObjectId(userId);
+
+        const threads = await Thread.find({
+            type: 'group',
+            'members.userId': { $ne: objectUserId }
+        })
+        .sort({ updatedAt: -1 })
+        .populate('createdBy', 'name avatar email avatarUrl')
+        .populate('members.userId', 'name avatar email avatarUrl')
+        .lean();
+
+        return {
+            success: true,
+            message: 'Group threads fetched successfully',
+            data: threads
+        };
+    };
 }
 module.exports = new ThreadService();

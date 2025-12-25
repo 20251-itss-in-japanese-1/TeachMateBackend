@@ -213,10 +213,12 @@ class ScheduleService {
         if (filters.threadId) {
             query.threadId = filters.threadId;
         }
-
         if (filters.upcoming === true || filters.upcoming === 'true') {
-            query.date = { $gte: new Date() };
-            query.status = { $in: ['scheduled'] };
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            query.date = { $gte: today };
+            query.status = 'scheduled';
         }
 
         // Find schedules
