@@ -293,5 +293,26 @@ class ThreadService {
             data: threads
         };
     };
+    joinThreadGroup = async (userId, threadId) => {
+        if (!userId) {
+            throw new Error('Unauthorized');
+        }
+        console.log('[ThreadService] joinThreadGroup called with:', { userId, threadId });
+        const thread = await Thread.findById(threadId);
+        if (!thread) {
+            throw new Error('Thread not found');
+        }
+        const isMember = thread.members.some(m => m.userId.toString() === userId.toString());
+        if (isMember) {
+            throw new Error('You are already a member of this thread');
+        }
+        thread.members.push({ userId, role: 'member' });
+        await thread.save();
+        return {
+            success: true,
+            message: 'You have joined the group thread successfully',
+            data: threadId
+        }
+    }
 }
 module.exports = new ThreadService();

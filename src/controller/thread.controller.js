@@ -91,6 +91,19 @@ class ThreadController {
             });
         }
     }
+    joinThreadGroup = async (req, res) => {
+        const userId = req.user && req.user.id;
+        const { threadId } = req.body;
+        try {
+            const result = await threadService.joinThreadGroup(userId, threadId);
+            res.status(200).json(result);  
+        } catch (error) {
+            res.status(400).json({
+                message: error.message,
+                success: false
+            });
+        }
+    }
 }
 
 module.exports = new ThreadController();   
