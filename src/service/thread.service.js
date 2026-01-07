@@ -134,7 +134,8 @@ class ThreadService {
         );
         await Thread.updateOne(
             { _id: threadId, 'members.userId': userId },
-            { $set: { 'members.$.lastReadAt': new Date() } }
+            { $set: { 'members.$.lastReadAt': new Date() } },
+            { timestamps: false }
         );
         
         let messages = await Message.find({
