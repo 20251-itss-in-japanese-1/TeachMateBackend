@@ -200,19 +200,31 @@ class ScheduleService {
             throw new Error('User not found');
         }
 
-        // Build query
-        const query = {
-            participants: userId
-        };
+        // Build query: when threadId is provided, return schedules of that thread
+        // (visible to any thread member), otherwise return schedules the user
+        // participates in.
+        let query = {};
+
+        if (filters.threadId) {
+            const thread = await Thread.findOne({
+                _id: filters.threadId,
+                'members.userId': userId
+            });
+
+            if (!thread) {
+                throw new Error('Thread not found or you are not a member');
+            }
+
+            query = { threadId: filters.threadId };
+        } else {
+            query = { participants: userId };
+        }
 
         // Apply filters
         if (filters.status) {
             query.status = filters.status;
         }
 
-        if (filters.threadId) {
-            query.threadId = filters.threadId;
-        }
         if (filters.upcoming === true || filters.upcoming === 'true') {
             const today = new Date();
             today.setHours(0, 0, 0, 0);
