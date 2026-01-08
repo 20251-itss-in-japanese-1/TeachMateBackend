@@ -90,21 +90,7 @@ class ChatService {
         senderId, 
         content = "", 
         files = [] 
-    }) => {
-        console.log('========== SERVICE DEBUG ==========');
-        console.log('[sendMessageWithFile] Received params:', { threadId, senderId, content, filesCount: files.length });
-        console.log('[sendMessageWithFile] Files details:', files.map(f => ({
-            fieldname: f.fieldname,
-            originalname: f.originalname,
-            mimetype: f.mimetype,
-            size: f.size,
-            path: f.path,
-            secure_url: f.secure_url,
-            url: f.url,
-            filename: f.filename
-        })));
-        console.log('===================================');
-        
+    }) => {        
         if (!senderId) throw new Error("Sender ID is required");
         if (!threadId || threadId === "null") {
             throw new Error("Thread ID is required");
@@ -134,11 +120,6 @@ class ChatService {
             if (f.mimetype.startsWith("image/")) kind = "image";
             
             const fileUrl = f.path || f.secure_url || f.url;
-            console.log(`[sendMessageWithFile] Processing file: ${f.originalname}`);
-            console.log(`[sendMessageWithFile] File kind: ${kind}`);
-            console.log(`[sendMessageWithFile] File URL: ${fileUrl}`);
-            console.log(`[sendMessageWithFile] URL sources - path: ${f.path}, secure_url: ${f.secure_url}, url: ${f.url}`);
-
             const fileMsg = await Message.create({
                 threadId: thread._id,
                 senderId,

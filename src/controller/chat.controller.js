@@ -32,18 +32,7 @@ class ChatController {
     sendMessageFile = async (req, res) => {
         const userId = req.user && req.user.id;
         const { threadId, recipientId, content} = req.body;
-        const files = req.files;
-        
-        console.log('========== FILE UPLOAD DEBUG ==========');
-        console.log('[sendMessageFile] userId:', userId);
-        console.log('[sendMessageFile] threadId:', threadId);
-        console.log('[sendMessageFile] recipientId:', recipientId);
-        console.log('[sendMessageFile] content:', content);
-        console.log('[sendMessageFile] files count:', files?.length);
-        console.log('[sendMessageFile] files:', JSON.stringify(files, null, 2));
-        console.log('[sendMessageFile] req.body:', req.body);
-        console.log('======================================');
-        
+        const files = req.files;    
         try {
             if (!files || files.length === 0) {
                 console.log('[sendMessageFile] No files received');
