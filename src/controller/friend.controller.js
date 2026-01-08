@@ -56,8 +56,12 @@ class FriendController {
         const userId = req.user.id;
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 10;
+        const teacher_name = req.query.teacher_name || '';
+        const nationality = req.query.nationality || '';
+        const years_of_experience = req.query.years_of_experience || '';
+        const subjects = req.query.subjects || '';
         try {
-            const result = await friendService.friendSuggestions(userId, page, limit);
+            const result = await friendService.friendSuggestions(userId, page, limit, teacher_name, nationality, years_of_experience, subjects);
             res.status(200).json(result);
         } catch (error) {
             res.status(404).json({
