@@ -4,10 +4,12 @@ const authMiddleware = require('../middleware/AuthMiddleware');
 const fileUpload = require('../config/uploadFile');
 const router = express.Router();
 
+console.log('[Chat Routes] Loading chat routes...');
 
 router.post('/message', authMiddleware.isAuth, chatController.sendTextMessage);
 router.post('/thread', authMiddleware.isAuth, chatController.getorCreateThread);
-router.post('/message/file', authMiddleware.isAuth, fileUpload.array('files', 10), chatController.sendMessageFile);
+router.post('/message/file', authMiddleware.isAuth, fileUpload.array('files', 10),chatController.sendMessageFile
+);
 // Delete a message
 router.delete('/message/:messageId', authMiddleware.isAuth, chatController.deleteMessage);
 

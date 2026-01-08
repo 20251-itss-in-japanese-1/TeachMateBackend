@@ -90,7 +90,7 @@ class ChatService {
         senderId, 
         content = "", 
         files = [] 
-    }) => {
+    }) => {        
         if (!senderId) throw new Error("Sender ID is required");
         if (!threadId || threadId === "null") {
             throw new Error("Thread ID is required");
@@ -118,23 +118,25 @@ class ChatService {
         for (const f of files) {
             let kind = "file";
             if (f.mimetype.startsWith("image/")) kind = "image";
-
+            
+            const fileUrl = f.path || f.secure_url || f.url;
             const fileMsg = await Message.create({
                 threadId: thread._id,
                 senderId,
                 contentType: "file",
                 content: "",
                 attachments: [
-                    {
-                        kind,
-                        mime: f.mimetype,
-                        url: f.path
-                    }
+                {
+                    kind,
+                    mime: f.mimetype,
+                    url: fileUrl  
+                }
                 ],
                 readBy: [senderId],
                 reactions: [],
                 createdAt: new Date()
             });
+            console.log(`[sendMessageWithFile] Created message for file:`, fileMsg._id);
             createdMessages.push(fileMsg);
         }
 
