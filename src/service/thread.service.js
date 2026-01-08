@@ -122,6 +122,8 @@ class ThreadService {
         .lean();
         
         if (!thread) throw new Error('Thread not found or access denied');
+        
+        // Mark messages as read without updating thread's updatedAt
         await Message.updateMany(
             {
                 threadId: threadId,
@@ -132,10 +134,16 @@ class ThreadService {
                 $addToSet: { readBy: userId }
             }
         );
-        await Thread.updateOne(
-            { _id: threadId, 'members.userId': userId },
-            { $set: { 'members.$.lastReadAt': new Date() } },
-            { timestamps: false }
+        
+        // Update lastReadAt for the user without changing updatedAt
+        await Thread.collection.updateOne(
+            { _id: new mongoose.Types.ObjectId(threadId), 'members.userId': new mongoose.Types.ObjectId(userId) },
+            { 
+                $set: { 
+                    'members.$.lastReadAt': new Date(),
+                    updatedAt: thread.updatedAt // Preserve the original updatedAt
+                } 
+            }
         );
         
         let messages = await Message.find({
