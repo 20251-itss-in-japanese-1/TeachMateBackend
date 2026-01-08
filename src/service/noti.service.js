@@ -67,5 +67,37 @@ class NotiService {
             message: 'Notification marked as read',
         };
     }
+    deleteSingleNoti = async (userId, notiId) => {
+        if (!userId){
+            throw new Error('Unauthorized');
+        }
+        const user = await User.findById(userId);
+        if (!user){
+            throw new Error('User not found');
+        }
+        const notification = await Notification.findOne({_id: notiId, userId: userId});
+        if (!notification){
+            throw new Error('Notification not found');
+        }
+        await Notification.deleteOne({_id: notiId});
+        return {
+            success: true,
+            message: 'Notification deleted successfully',
+        };
+    }
+    deleteAllNoti = async (userId) => {
+        if (!userId){
+            throw new Error('Unauthorized');
+        }
+        const user = await User.findById(userId);
+        if (!user){
+            throw new Error('User not found');
+        }
+        await Notification.deleteMany({userId: userId});
+        return {
+            success: true,
+            message: 'All notifications deleted successfully',
+        };
+    }
 }
 module.exports = new NotiService();

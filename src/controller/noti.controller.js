@@ -37,6 +37,31 @@ class NotiController {
             });
         }
     }
+    deleteSingleNotification = async (req, res) => {
+        const userId = req.user.id;
+        const {notiId} = req.body;
+        try {
+            const result = await notiService.deleteSingleNoti(userId, notiId);
+            res.status(200).json(result);
+        } catch (error) {
+            res.status(404).json({
+                message: error.message,
+                success: false
+            });
+        }
+    }
+    deleteAllNotifications = async (req, res) => {
+        const userId = req.user.id;
+        try {
+            const result = await notiService.deleteAllNoti(userId);
+            res.status(200).json(result);
+        } catch (error) {
+            res.status(404).json({
+                message: error.message,
+                success: false
+            });
+        }
+    }
 }
 
 module.exports = new NotiController();
